@@ -7,7 +7,7 @@
   <style>
     body { font-family: -apple-system, system-ui; margin: 20px; padding: 20px; }
     h1 { font-size: 26px; margin-bottom: 20px; }
-    .row { margin: 15px 0; padding: 10px; border-bottom: 1px solid #ddd; }
+    .row { margin: 15px 0; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 8px; }
     label { font-size: 20px; font-weight: 600; display: block; margin-bottom: 6px; }
     input[type="text"], input[type="date"] {
       font-size: 18px; padding: 6px; width: 100%; margin-bottom: 6px;
@@ -40,14 +40,15 @@ function createRow(id) {
   const savedCheck = localStorage.getItem(id + "_check") === "true";
 
   return `
-    <div class="row">
+    <div class="row" id="${id}_row">
       <label>${id.replace("_"," ")}</label>
       <input type="text" id="${id}_sum" placeholder="Summa (€)" value="${savedSum}">
       <input type="date" id="${id}_date" value="${savedDate}">
       <div>
         <input type="checkbox" id="${id}_check" ${savedCheck ? "checked" : ""}>
-          <span>Samaksāts</span>
+        <span>Samaksāts</span>
       </div>
+      <div id="${id}_warn" style="color:red; font-weight:600; margin-top:5px;"></div>
     </div>
   `;
 }
@@ -65,6 +66,73 @@ function updateTotal() {
   document.getElementById("totalBox").innerText = "Kopā: " + total.toFixed(2) + " €";
 }
 
+function checkDates() {
+  const today = new Date();
+
+  items.forEach(id => {
+    const dateVal = localStorage.getItem(id + "_date");
+    const paid = localStorage.getItem(id + "_check") === "true";
+    const warnBox = document.getElementById(id + "_warn");
+    const row = document.getElementById(id + "_row");
+
+    warnBox.innerText = "";
+    row.style.background = "#f3f3f3";
+
+    if (!dateVal) return;
+
+    const due = new Date(dateVal);
+    const diff = (due - today) / (1000 * 60 * 60 * 24);
+
+    if (paid) {
+      row.style.background = "#d4f8d4"; // zaļš
+      return;
+    }
+
+    if (diff < 0) {
+      warnBox.innerText = "Termiņš nokavēts!";
+      row.style.background = "#ffd6d6"; // sarkans
+    } else if (diff <= 3) {
+      warnBox.innerText = "Tuvākās dienās jāapmaksā!";
+      row.style.background = "#fff0cc"; // oranžs
+    }
+  });
+}
+
+// Push tipa brīdinājumi
+function notifyUser(title, message) {
+  if (!("Notification" in window)) return;
+
+  Notification.requestPermission().then(permission => {
+    if (permission === "granted") {
+      new Notification(title, { body: message });
+    }
+  });
+}
+
+function checkNotifications() {
+  const today = new Date();
+
+  items.forEach(id => {
+    const dateVal = localStorage.getItem(id + "_date");
+    const paid = localStorage.getItem(id + "_check") === "true";
+
+    if (!dateVal || paid) return;
+
+    const due = new Date(dateVal);
+    const diff = (due - today) / (1000 * 60 * 60 * 24);
+
+    const notified = localStorage.getItem(id + "_notified") === "true";
+
+    if (diff < 0 && !notified) {
+      notifyUser("Nokavēts maksājums!", id + " termiņš ir nokavēts!");
+      localStorage.setItem(id + "_notified", "true");
+    } else if (diff <= 3 && diff >= 0 && !notified) {
+      notifyUser("Tuvākās dienās jāapmaksā!", id + " termiņš tuvojas.");
+      localStorage.setItem(id + "_notified", "true");
+    }
+  });
+}
+
 items.forEach(id => {
   const sum = document.getElementById(id + "_sum");
   const date = document.getElementById(id + "_date");
@@ -77,15 +145,22 @@ items.forEach(id => {
 
   date.addEventListener("change", () => {
     localStorage.setItem(id + "_date", date.value);
+    checkDates();
+    checkNotifications();
   });
 
   check.addEventListener("change", () => {
     localStorage.setItem(id + "_check", check.checked);
+    checkDates();
+    checkNotifications();
   });
 });
 
 updateTotal();
+checkDates();
+checkNotifications();
 </script>
 
 </body>
 </html>
+
