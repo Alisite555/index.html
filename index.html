@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8">
+  <title>Mēneša maksājumi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: -apple-system, system-ui; margin: 20px; padding: 20px; }
+    h1 { font-size: 26px; margin-bottom: 20px; }
+    .row { margin: 15px 0; padding: 10px; border-bottom: 1px solid #ddd; }
+    label { font-size: 20px; font-weight: 600; display: block; margin-bottom: 6px; }
+    input[type="text"], input[type="date"] {
+      font-size: 18px; padding: 6px; width: 100%; margin-bottom: 6px;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
+    input[type="checkbox"] { width: 22px; height: 22px; margin-right: 10px; }
+    #totalBox {
+      margin-top: 25px; padding: 15px; background: #f3f3f3;
+      border-radius: 10px; font-size: 22px; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Mēneša maksājumi</h1>
+
+<div id="items"></div>
+
+<div id="totalBox">Kopā: 0.00 €</div>
+
+<script>
+const items = [
+  "TET","Neste","Culligan","Bite_i","Citi","Telpa_i","Telpa_a",
+  "Bite_a","LMT","B_i","Proc_i","B_a","Proc_a","Dazadi"
+];
+
+function createRow(id) {
+  const savedSum = localStorage.getItem(id + "_sum") || "";
+  const savedDate = localStorage.getItem(id + "_date") || "";
+  const savedCheck = localStorage.getItem(id + "_check") === "true";
+
+  return `
+    <div class="row">
+      <label>${id.replace("_"," ")}</label>
+      <input type="text" id="${id}_sum" placeholder="Summa (€)" value="${savedSum}">
+      <input type="date" id="${id}_date" value="${savedDate}">
+      <div>
+        <input type="checkbox" id="${id}_check" ${savedCheck ? "checked" : ""}>
+          <span>Samaksāts</span>
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById("items").innerHTML = items.map(createRow).join("");
+
+function updateTotal() {
+  let total = 0;
+  items.forEach(id => {
+    const val = localStorage.getItem(id + "_sum");
+    if (val && !isNaN(parseFloat(val))) {
+      total += parseFloat(val);
+    }
+  });
+  document.getElementById("totalBox").innerText = "Kopā: " + total.toFixed(2) + " €";
+}
+
+items.forEach(id => {
+  const sum = document.getElementById(id + "_sum");
+  const date = document.getElementById(id + "_date");
+  const check = document.getElementById(id + "_check");
+
+  sum.addEventListener("input", () => {
+    localStorage.setItem(id + "_sum", sum.value);
+    updateTotal();
+  });
+
+  date.addEventListener("change", () => {
+    localStorage.setItem(id + "_date", date.value);
+  });
+
+  check.addEventListener("change", () => {
+    localStorage.setItem(id + "_check", check.checked);
+  });
+});
+
+updateTotal();
+</script>
+
+</body>
+</html>
