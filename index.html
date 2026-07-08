@@ -98,7 +98,7 @@ function checkDates() {
   });
 }
 
-// Push tipa brīdinājumi
+// Push paziņojumi
 function notifyUser(title, message) {
   if (!("Notification" in window)) return;
 
@@ -133,29 +133,31 @@ function checkNotifications() {
   });
 }
 
-items.forEach(id => {
-  const sum = document.getElementById(id + "_sum");
-  const date = document.getElementById(id + "_date");
-  const check = document.getElementById(id + "_check");
+// AUTOMĀTISKA MĒNEŠA MAIŅA
+function autoMonthReset() {
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0–11
 
-  sum.addEventListener("input", () => {
-    localStorage.setItem(id + "_sum", sum.value);
-    updateTotal();
-  });
+  const savedMonth = localStorage.getItem("savedMonth");
 
-  date.addEventListener("change", () => {
-    localStorage.setItem(id + "_date", date.value);
-    checkDates();
-    checkNotifications();
-  });
+  if (savedMonth === null) {
+    localStorage.setItem("savedMonth", currentMonth);
+    return;
+  }
 
-  check.addEventListener("change", () => {
-    localStorage.setItem(id + "_check", check.checked);
-    checkDates();
-    checkNotifications();
-  });
-});
+  if (parseInt(savedMonth) !== currentMonth) {
+    // Jauns mēnesis → notīrām ķeksīšus un brīdinājumus
+    items.forEach(id => {
+      localStorage.removeItem(id + "_check");
+      localStorage.removeItem(id + "_notified");
+    });
 
+    // Saglabā jauno mēnesi
+    localStorage.setItem("savedMonth", currentMonth);
+  }
+}
+
+autoMonthReset();
 updateTotal();
 checkDates();
 checkNotifications();
@@ -163,4 +165,3 @@ checkNotifications();
 
 </body>
 </html>
-
